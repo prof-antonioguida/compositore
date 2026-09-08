@@ -91,11 +91,11 @@ svg.ic { width: 21px; height: 21px; display: block; fill: none; stroke-width: 1.
 #toolbarBand { background: #f5f3ee; border-bottom: 2px solid #c9c3b6; flex: 0 0 auto; }
 #toolRow { display: flex; align-items: center; gap: 8px; padding: 0 6px; }
 
-#paletteRow { flex: 1 1 auto; min-width: 40px; padding: 0 4px; }
+#paletteRow { flex: 0 0 50%; min-width: 40px; max-width: 50%; padding: 0 4px; }
 #paletteSvg { display: block; width: 100%; height: auto; touch-action: none; }
 
 #buttonsColumn {
-  flex: 0 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 3px;
+  flex: 0 0 50%; max-width: 50%; min-width: 0; display: flex; flex-direction: column; gap: 4px;
   border-left: 2px solid #c9c3b6; padding-left: 10px;
 }
 
@@ -104,7 +104,8 @@ svg.ic { width: 21px; height: 21px; display: block; fill: none; stroke-width: 1.
   white-space: nowrap;
 }
 .toolsRowInner {
-  display: flex; align-items: center; gap: 5px; transform-origin: left center;
+  display: grid; grid-auto-flow: column; grid-auto-columns: minmax(38px, auto);
+  column-gap: 5px; align-items: center; justify-items: center; transform-origin: left center;
 }
 #zoomSlider { width: 110px; flex: 0 0 auto; }
 #zoomLabel { font-size: 12px; font-weight: 600; color: #4a4436; min-width: 32px; flex: 0 0 auto; }
@@ -209,8 +210,8 @@ svg.ic { width: 21px; height: 21px; display: block; fill: none; stroke-width: 1.
     </div>
     <div id="buttonsColumn">
 
-    <div class="toolsRow" id="toolsRowWrap" style="position:relative;">
-      <div class="toolsRowInner" id="toolsRow">
+    <div class="toolsRow" id="toolsRow1Wrap">
+      <div class="toolsRowInner" id="toolsRow1">
         <button class="iconBtn active" id="btnSelectTool" title="Seleziona / sposta">
           <svg class="ic" viewBox="0 0 24 24" stroke="none"><path fill="#34495e" d="M4 2 L4 18 L8.3 14.2 L11.3 20.7 L13.8 19.5 L10.8 13 L16.8 13 Z"/></svg>
         </button>
@@ -246,7 +247,11 @@ svg.ic { width: 21px; height: 21px; display: block; fill: none; stroke-width: 1.
           <svg class="ic" viewBox="0 0 24 24" stroke="#34495e"><line x1="4" y1="12" x2="20" y2="12"/><line x1="12" y1="4" x2="12" y2="20"/></svg>
         </button>
         <span id="zoomLabel">100%</span>
+      </div>
+    </div>
 
+    <div class="toolsRow" id="toolsRow2Wrap" style="position:relative;">
+      <div class="toolsRowInner" id="toolsRow2">
         <button class="iconBtn" id="btnPencil" title="Matita">
           <svg class="ic" viewBox="0 0 24 24" stroke="#e67e22"><path d="M14.3 4.7 L19.3 9.7 L8.3 20.7 L3.3 20.7 L3.3 15.7 Z"/><line x1="12.2" y1="6.8" x2="17.2" y2="11.8"/></svg>
         </button>
@@ -420,7 +425,7 @@ var LAYOUT = {
    indipendente da LAYOUT.sp, che invece governa la dimensione reale del
    pentagramma nel foglio di lavoro e non deve mai essere ridotta per
    motivi di spazio dell'interfaccia. */
-var PALETTE_SP = 8;
+var PALETTE_SP = 11;
 
 function systemLayout(nSystems) {
   nSystems = nSystems || LAYOUT.nSystems;
@@ -644,13 +649,13 @@ function renderPalette() {
   var items = paletteItems();
   paletteItemsCache = items;
 
-  var VB_H = 95;
-  var y0 = 11;
+  var VB_H = 131;
+  var y0 = 15;
   var L0 = y0, L2 = y0 + sp * 2, L4 = y0 + sp * 4, L6 = y0 + sp * 6, L8 = y0 + sp * 8;
 
   var out = [];
-  var x = 13;
-  var GAP = 9;
+  var x = 16;
+  var GAP = 16;
 
   for (var i = 0; i < items.length; i++) {
     var it = items[i];
@@ -1754,8 +1759,15 @@ function applyToolsRowScale(wrapId, innerId, scale) {
   }
 }
 function fitAllToolsRows() {
-  var s = fitToolsRow("toolsRowWrap", "toolsRow");
-  applyToolsRowScale("toolsRowWrap", "toolsRow", Math.min(s, 1));
+  /* le due file di tasti devono restare incolonnate fra loro: usano
+     percio' un UNICO fattore di scala (il piu' piccolo dei due), non
+     uno ciascuna, altrimenti a schermi stretti risulterebbero di
+     dimensioni diverse e non piu' allineate in colonna. */
+  var s1 = fitToolsRow("toolsRow1Wrap", "toolsRow1");
+  var s2 = fitToolsRow("toolsRow2Wrap", "toolsRow2");
+  var shared = Math.min(s1, s2, 1);
+  applyToolsRowScale("toolsRow1Wrap", "toolsRow1", shared);
+  applyToolsRowScale("toolsRow2Wrap", "toolsRow2", shared);
 }
 var __fitResizeT = null;
 window.addEventListener("resize", function () {
@@ -1907,7 +1919,7 @@ document.getElementById("imageFileInput").addEventListener("change", function (e
 /* chiude i popover cliccando fuori (i popover si aprono dai tasti
    della seconda fila di strumenti) */
 document.addEventListener("pointerdown", function (e) {
-  var row2 = document.getElementById("toolsRowWrap");
+  var row2 = document.getElementById("toolsRow2Wrap");
   if (row2 && !row2.contains(e.target)) closeAllPopovers();
 });
 
