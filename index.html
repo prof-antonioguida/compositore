@@ -21,18 +21,21 @@ html, body {
   overflow-x: hidden;
 }
 #app { display: flex; flex-direction: column; height: 100vh; }
-svg.ic { width: 21px; height: 21px; display: block; fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+svg.ic { width: 21px; height: 21px; display: block; fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; flex: 0 0 auto; }
 
 /* ---------- pulsanti a icona quadrati ---------- */
 .iconBtn {
-  width: 40px; height: 40px; flex: 0 0 auto;
+  width: 38px; height: 38px; flex: 0 0 auto;
   display: flex; align-items: center; justify-content: center;
   background: #fff; border: 1px solid #aab5bd; border-radius: 7px;
   cursor: pointer; position: relative; padding: 0;
 }
 .iconBtn:hover { background: #f0f4f6; }
 .iconBtn.active { background: #dce9f5; border-color: #2f6fb3; box-shadow: inset 0 0 0 2px #2f6fb3; }
-.iconBtn.small { width: 30px; height: 30px; border-radius: 6px; }
+.iconBtn.disabledBtn { opacity: .35; pointer-events: none; }
+.iconBtn.small { width: 28px; height: 28px; border-radius: 6px; }
+.iconBtn.tiny { width: 20px; height: 20px; border-radius: 5px; }
+.iconBtn.tiny svg.ic { width: 13px; height: 13px; }
 .iconBtn.dark { background: #3a4a5e; border-color: #5a6b84; }
 .iconBtn.dark:hover { background: #46586e; }
 .iconBtn .badge {
@@ -41,14 +44,15 @@ svg.ic { width: 21px; height: 21px; display: block; fill: none; stroke-width: 1.
   width: 15px; height: 15px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
   border: 1.5px solid #fff;
 }
-.accSep { width: 1px; align-self: stretch; background: #b9c2c8; margin: 0 4px; }
+.accSep { width: 1px; align-self: stretch; background: #b9c2c8; margin: 0 3px; flex: 0 0 auto; }
 
-/* ---------- Header ---------- */
+/* ---------- Header (mai a capo: si restringe con JS se serve) ---------- */
 #appHeader {
-  display: flex; align-items: center; gap: 10px;
+  display: flex; align-items: center; gap: 8px;
   background: #2f3b4c; color: #fff;
-  padding: 7px 14px;
+  padding: 6px 12px;
   flex: 0 0 auto;
+  white-space: nowrap; overflow: hidden;
 }
 #appHeader h1 {
   font-size: 12px; font-weight: 700; margin: 0; flex: 0 0 auto;
@@ -56,20 +60,23 @@ svg.ic { width: 21px; height: 21px; display: block; fill: none; stroke-width: 1.
 }
 #btnContatti {
   background: #f5b041; color: #2f3b4c; border: none; border-radius: 6px;
-  padding: 6px 12px; font-size: 12px; font-weight: 700; cursor: pointer; flex: 0 0 auto;
+  padding: 5px 10px; font-size: 11.5px; font-weight: 700; cursor: pointer; flex: 0 0 auto;
+  white-space: nowrap;
 }
 #btnContatti:hover { background: #f8c471; }
 #pageTabs {
   display: flex; gap: 4px; flex: 1 1 auto; overflow-x: auto; align-items: center;
-  scrollbar-width: thin;
+  scrollbar-width: thin; min-width: 30px;
 }
 .pageTab {
   display: flex; align-items: center; gap: 6px;
   background: #47566c; color: #dbe2ea; border: 1px solid #5a6b84;
   padding: 6px 8px 6px 12px; border-radius: 6px 6px 0 0; cursor: pointer;
   font-size: 12.5px; font-weight: 600; white-space: nowrap; flex: 0 0 auto;
+  touch-action: none; user-select: none;
 }
 .pageTab.active { background: #f5f3ee; color: #2f3b4c; }
+.pageTab.dragging { opacity: .5; }
 .pageTab .closeX {
   width: 17px; height: 17px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
   color: inherit; opacity: .65;
@@ -79,24 +86,34 @@ svg.ic { width: 21px; height: 21px; display: block; fill: none; stroke-width: 1.
   font-size: 12.5px; font-weight: 600; border: 1px solid #2f6fb3; border-radius: 3px;
   padding: 1px 4px; font-family: inherit;
 }
-.addPageBtns { display: flex; gap: 6px; flex: 0 0 auto; }
 
-/* ---------- Fascia strumenti: tavolozza + accessori + file + zoom ---------- */
+/* ---------- Fascia strumenti: elementi musicali a sinistra, tasti a destra su due righe ---------- */
 #toolbarBand { background: #f5f3ee; border-bottom: 2px solid #c9c3b6; flex: 0 0 auto; }
-#toolRow {
-  display: flex; align-items: stretch; gap: 10px;
-  padding: 2px 8px 2px 0;
+#toolRow { display: flex; align-items: center; gap: 8px; padding: 0 6px; }
+
+#paletteRow { flex: 1 1 auto; min-width: 40px; padding: 0 4px; }
+#paletteSvg { display: block; width: 100%; height: auto; touch-action: none; }
+
+#buttonsColumn {
+  flex: 0 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 3px;
+  border-left: 2px solid #c9c3b6; padding-left: 10px;
 }
-#paletteWrap { flex: 1 1 auto; overflow-x: auto; overflow-y: hidden; min-width: 0; }
-#paletteSvg { display: block; height: 108px; touch-action: none; }
-#accessoryGroup {
-  display: flex; align-items: center; gap: 6px; flex: 0 0 auto;
-  border-left: 2px solid #c9c3b6; padding-left: 10px; position: relative;
+
+.toolsRow {
+  display: flex; align-items: center; gap: 5px;
+  white-space: nowrap;
 }
+.toolsRowInner {
+  display: flex; align-items: center; gap: 5px; transform-origin: left center;
+}
+#zoomSlider { width: 110px; flex: 0 0 auto; }
+#zoomLabel { font-size: 12px; font-weight: 600; color: #4a4436; min-width: 32px; flex: 0 0 auto; }
+
 .popover {
-  position: absolute; top: 46px; right: 0; background: #fff;
+  position: absolute; top: 46px; left: 0; background: #fff;
   border: 1px solid #a9b3ba; border-radius: 8px; box-shadow: 0 6px 18px rgba(0,0,0,.18);
   padding: 12px; font-size: 12.5px; display: none; z-index: 50; min-width: 210px;
+  white-space: normal;
 }
 .popover.open { display: block; }
 .popover label { display: block; margin: 7px 0 3px; font-weight: 600; color: #3a4a55; }
@@ -114,21 +131,17 @@ svg.ic { width: 21px; height: 21px; display: block; fill: none; stroke-width: 1.
 .popover .shapeGrid button.sel { background: #dce9f5; border-color: #2f6fb3; }
 .popover .shapeGrid button svg { width: 16px; height: 16px; }
 
-#zoomSlider { width: 140px; }
-#zoomLabel { font-size: 12px; font-weight: 600; color: #4a4436; min-width: 34px; align-self: center; }
-
 /* ---------- Info row ---------- */
 #infoRow {
-  display: flex; align-items: center; gap: 22px; flex-wrap: wrap;
+  display: flex; align-items: center; gap: 18px; flex-wrap: nowrap; overflow: hidden;
   background: #ece8e0; border-bottom: 1px solid #d5cfc0;
-  padding: 5px 16px; flex: 0 0 auto;
+  padding: 5px 16px; flex: 0 0 auto; white-space: nowrap;
 }
 #infoRow label { font-size: 12.5px; font-weight: 600; color: #4a4436; display: flex; align-items: center; gap: 6px; }
 #infoRow input[type=text] {
   border: 1px solid #b9b2a0; border-radius: 4px; padding: 5px 8px;
-  font-size: 13px; min-width: 180px; background: #fff;
+  font-size: 13px; min-width: 140px; width: 100%; background: #fff;
 }
-#infoRow input[type=text].wide { min-width: 260px; }
 
 /* ---------- Canvas / page ---------- */
 #canvasScroll {
@@ -166,28 +179,17 @@ svg.ic { width: 21px; height: 21px; display: block; fill: none; stroke-width: 1.
 
 /* ---------- Print ---------- */
 @media print {
-  @page { size: A4 landscape; margin: 8mm; }
+  @page { size: A4 landscape; margin: 0; }
   html, body { background: #fff !important; }
   body * { visibility: hidden; }
   #printArea, #printArea * { visibility: visible; }
-  #printArea { position: absolute; left: 0; top: 0; width: 100%; background: #fff; }
+  #printArea { position: absolute; left: 0; top: 0; margin: 0; padding: 0; }
   .printPage {
     page-break-after: always; break-after: page; background: #fff;
-    height: 194mm; overflow: hidden;
+    width: 297mm; height: 210mm; overflow: hidden; margin: 0; padding: 0;
   }
   .printPage:last-child { page-break-after: auto; break-after: auto; }
-  .printPageInner { display: flex; flex-direction: column; height: 100%; }
-  .printPageHeader {
-    font-family: Georgia, serif; padding: 0 2mm; margin-bottom: 2mm; background: #fff;
-    flex: 0 0 auto;
-  }
-  .printTitleLine { font-size: 16pt; font-weight: bold; text-align: center; line-height: 1.15; }
-  .printNameLine { font-size: 11pt; text-align: right; line-height: 1.15; margin-top: 0.5mm; }
-  .printPageSvgWrap {
-    background: #fff; flex: 1 1 auto; min-height: 0;
-    display: flex; align-items: center; justify-content: center;
-  }
-  .printPageSvgWrap svg { width: 100%; height: 100%; display: block; }
+  .printPage svg { width: 297mm; height: 210mm; display: block; }
 }
 </style>
 </head>
@@ -198,144 +200,135 @@ svg.ic { width: 21px; height: 21px; display: block; fill: none; stroke-width: 1.
     <h1>COMPOSITORE A TRASCINAMENTO a cura del prof. Antonio Guida</h1>
     <button id="btnContatti">Contatti</button>
     <div id="pageTabs"></div>
-    <div class="addPageBtns">
-      <button class="iconBtn small dark" id="btnAddPage1" title="Nuovo Foglio 1">
-        <svg class="ic" viewBox="0 0 24 24" style="width:15px;height:15px;" stroke="#7fd8a0"><path d="M6 2 H15 L19 6 V22 H6 Z"/><path d="M15 2 V6 H19"/><line x1="12" y1="12" x2="12" y2="18"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
-        <span class="badge">1</span>
-      </button>
-      <button class="iconBtn small dark" id="btnAddPage2" title="Nuovo Foglio 2">
-        <svg class="ic" viewBox="0 0 24 24" style="width:15px;height:15px;" stroke="#85c1e9"><path d="M6 2 H15 L19 6 V22 H6 Z"/><path d="M15 2 V6 H19"/><line x1="12" y1="12" x2="12" y2="18"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
-        <span class="badge">2</span>
-      </button>
-    </div>
   </header>
 
   <div id="toolbarBand">
     <div id="toolRow">
-    <div id="paletteWrap">
-      <svg id="paletteSvg" viewBox="0 0 2200 170" preserveAspectRatio="xMinYMid meet"></svg>
+    <div id="paletteRow">
+      <svg id="paletteSvg" viewBox="0 0 2200 220" preserveAspectRatio="xMinYMid meet"></svg>
     </div>
-    <div id="accessoryGroup">
-      <button class="iconBtn active" id="btnSelectTool" title="Seleziona / sposta">
-        <svg class="ic" viewBox="0 0 24 24" stroke="none"><path fill="#34495e" d="M4 2 L4 18 L8.3 14.2 L11.3 20.7 L13.8 19.5 L10.8 13 L16.8 13 Z"/></svg>
-      </button>
+    <div id="buttonsColumn">
 
-      <div class="accSep"></div>
-      <button class="iconBtn" id="btnApri" title="Apri...">
-        <svg class="ic" viewBox="0 0 24 24" stroke="#f39c12"><path d="M3 7 H10 L12 9.3 H21 V19 H3 Z"/></svg>
-      </button>
-      <button class="iconBtn" id="btnSalvaCon" title="Salva con nome...">
-        <svg class="ic" viewBox="0 0 24 24" stroke="#2980b9"><path d="M4 4 H16.5 L20 7.5 V20 H4 Z"/><rect x="7.3" y="4" width="7.5" height="5"/><path d="M7 20 V16 L14 9 L17 12 L10 19 Z"/></svg>
-      </button>
-      <button class="iconBtn" id="btnSalva" title="Salva">
-        <svg class="ic" viewBox="0 0 24 24" stroke="#27ae60"><path d="M4 4 H16.5 L20 7.5 V20 H4 Z"/><rect x="7.3" y="4" width="7.5" height="5"/><rect x="6.3" y="13" width="11.3" height="7"/></svg>
-      </button>
-      <button class="iconBtn" id="btnEsportaPdf" title="Esporta PDF">
-        <svg class="ic" viewBox="0 0 24 24" stroke="#c0392b"><path d="M6 2 H14 L18 6 V22 H6 Z"/><path d="M14 2 V6 H18"/><line x1="12" y1="10" x2="12" y2="17"/><path d="M9 14 L12 17.3 L15 14"/></svg>
-      </button>
+    <div class="toolsRow" id="toolsRowWrap" style="position:relative;">
+      <div class="toolsRowInner" id="toolsRow">
+        <button class="iconBtn active" id="btnSelectTool" title="Seleziona / sposta">
+          <svg class="ic" viewBox="0 0 24 24" stroke="none"><path fill="#34495e" d="M4 2 L4 18 L8.3 14.2 L11.3 20.7 L13.8 19.5 L10.8 13 L16.8 13 Z"/></svg>
+        </button>
+        <button class="iconBtn" id="btnUndo" title="Annulla ultima operazione">
+          <svg class="ic" viewBox="0 0 24 24" stroke="#34495e"><path d="M7 8 H15 A6 6 0 1 1 9 17.5"/><path d="M7 8 L11 4 M7 8 L11 12"/></svg>
+        </button>
+        <button class="iconBtn" id="btnRedo" title="Ripristina ultima operazione">
+          <svg class="ic" viewBox="0 0 24 24" stroke="#34495e"><path d="M17 8 H9 A6 6 0 1 0 15 17.5"/><path d="M17 8 L13 4 M17 8 L13 12"/></svg>
+        </button>
+        <button class="iconBtn" id="btnAddPage" title="Aggiungi foglio">
+          <svg class="ic" viewBox="0 0 24 24" stroke="#7fd8a0"><path d="M6 2 H15 L19 6 V22 H6 Z"/><path d="M15 2 V6 H19"/><line x1="12" y1="12" x2="12" y2="18"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+        </button>
+        <button class="iconBtn" id="btnApri" title="Apri...">
+          <svg class="ic" viewBox="0 0 24 24" stroke="#f39c12"><path d="M3 7 H10 L12 9.3 H21 V19 H3 Z"/></svg>
+        </button>
+        <button class="iconBtn" id="btnSalvaCon" title="Salva con nome...">
+          <svg class="ic" viewBox="0 0 24 24" stroke="#2980b9"><path d="M4 4 H16.5 L20 7.5 V20 H4 Z"/><rect x="7.3" y="4" width="7.5" height="5"/><path d="M7 20 V16 L14 9 L17 12 L10 19 Z"/></svg>
+        </button>
+        <button class="iconBtn" id="btnSalva" title="Salva">
+          <svg class="ic" viewBox="0 0 24 24" stroke="#27ae60"><path d="M4 4 H16.5 L20 7.5 V20 H4 Z"/><rect x="7.3" y="4" width="7.5" height="5"/><rect x="6.3" y="13" width="11.3" height="7"/></svg>
+        </button>
+        <button class="iconBtn" id="btnEsportaPdf" title="Esporta PDF">
+          <svg class="ic" viewBox="0 0 24 24" stroke="#c0392b"><path d="M6 2 H14 L18 6 V22 H6 Z"/><path d="M14 2 V6 H18"/><line x1="12" y1="10" x2="12" y2="17"/><path d="M9 14 L12 17.3 L15 14"/></svg>
+        </button>
+        <button class="iconBtn" id="btnFullscreen" title="Schermo intero">
+          <svg class="ic" viewBox="0 0 24 24" stroke="#34495e"><path d="M4 9 V4 H9"/><path d="M15 4 H20 V9"/><path d="M20 15 V20 H15"/><path d="M9 20 H4 V15"/></svg>
+        </button>
+        <button class="iconBtn tiny" id="zoomMinus" title="Riduci dimensione foglio">
+          <svg class="ic" viewBox="0 0 24 24" stroke="#34495e"><line x1="4" y1="12" x2="20" y2="12"/></svg>
+        </button>
+        <input type="range" id="zoomSlider" min="40" max="200" value="100" step="5">
+        <button class="iconBtn tiny" id="zoomPlus" title="Aumenta dimensione foglio">
+          <svg class="ic" viewBox="0 0 24 24" stroke="#34495e"><line x1="4" y1="12" x2="20" y2="12"/><line x1="12" y1="4" x2="12" y2="20"/></svg>
+        </button>
+        <span id="zoomLabel">100%</span>
 
-      <div class="accSep"></div>
-      <button class="iconBtn" id="btnPencil" title="Matita">
-        <svg class="ic" viewBox="0 0 24 24" stroke="#e67e22"><path d="M14.3 4.7 L19.3 9.7 L8.3 20.7 L3.3 20.7 L3.3 15.7 Z"/><line x1="12.2" y1="6.8" x2="17.2" y2="11.8"/></svg>
-      </button>
-      <div class="popover" id="popPencil">
-        <label>Colore</label>
-        <input type="color" id="pencilColor" value="#1a1a1a">
-        <label>Spessore (<span id="pencilWidthVal">3</span> px)</label>
-        <input type="range" id="pencilWidth" min="1" max="14" value="3">
-      </div>
-
-      <button class="iconBtn" id="btnText" title="Testo">
-        <svg class="ic" viewBox="0 0 24 24" stroke="none"><text x="12" y="18" font-family="Georgia, serif" font-size="18" font-weight="bold" text-anchor="middle" fill="#8e44ad">A</text></svg>
-      </button>
-      <div class="popover" id="popText">
-        <label>Tipo di carattere</label>
-        <select id="textFont">
-          <option value="Georgia, serif">Georgia (serif)</option>
-          <option value="Arial, sans-serif" selected>Arial (sans-serif)</option>
-          <option value="'Courier New', monospace">Courier (monospace)</option>
-          <option value="'Comic Sans MS', cursive">Comic Sans</option>
-        </select>
-        <label>Dimensione (<span id="textSizeVal">18</span> px)</label>
-        <input type="range" id="textSize" min="8" max="60" value="18">
-        <div class="row" style="margin-top:8px; gap:6px;">
-          <button class="iconBtn small" id="textBoldBtn" title="Grassetto" style="width:34px;height:30px;"><b style="font-size:15px;">G</b></button>
-          <button class="iconBtn small" id="textItalicBtn" title="Corsivo" style="width:34px;height:30px;"><i style="font-size:15px;">C</i></button>
+        <button class="iconBtn" id="btnPencil" title="Matita">
+          <svg class="ic" viewBox="0 0 24 24" stroke="#e67e22"><path d="M14.3 4.7 L19.3 9.7 L8.3 20.7 L3.3 20.7 L3.3 15.7 Z"/><line x1="12.2" y1="6.8" x2="17.2" y2="11.8"/></svg>
+        </button>
+        <div class="popover" id="popPencil">
+          <label>Colore</label>
+          <input type="color" id="pencilColor" value="#1a1a1a">
+          <label>Spessore (<span id="pencilWidthVal">3</span> px)</label>
+          <input type="range" id="pencilWidth" min="1" max="14" value="3">
         </div>
-        <label>Colore</label>
-        <input type="color" id="textColor" value="#1a1a1a">
-        <div style="margin-top:8px; color:#555;">Poi clicca sul foglio nel punto in cui vuoi scrivere.</div>
-      </div>
 
-      <button class="iconBtn" id="btnImage" title="Immagine">
-        <svg class="ic" viewBox="0 0 24 24" stroke="#16a085"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.3" cy="9.3" r="1.6" fill="#16a085" stroke="none"/><path d="M3.5 17 L9 11 L13 15 L16 12 L20.5 16.5"/></svg>
-      </button>
-      <input type="file" id="imageFileInput" accept="image/*" hidden>
+        <button class="iconBtn" id="btnEraser" title="Gomma (tieni premuto e trascina sugli elementi per cancellarli)">
+          <svg class="ic" viewBox="0 0 24 24" stroke="#c0392b"><path d="M9 20 H21" /><path d="M4 14 L14 4 L21 11 L11 21 H7 Z"/><line x1="9.5" y1="14.5" x2="16" y2="21"/></svg>
+        </button>
+        <button class="iconBtn" id="btnClearSheet" title="Cancella tutto il contenuto del foglio">
+          <svg class="ic" viewBox="0 0 24 24" stroke="#c0392b"><path d="M6 2 H15 L19 6 V22 H6 Z"/><path d="M15 2 V6 H19"/><line x1="8.5" y1="10" x2="16.5" y2="18"/><line x1="16.5" y1="10" x2="8.5" y2="18"/></svg>
+        </button>
 
-      <button class="iconBtn" id="btnShapes" title="Forme">
-        <svg class="ic" viewBox="0 0 24 24" stroke="#2980b9"><rect x="2.5" y="9" width="9" height="9"/><circle cx="17" cy="8" r="5.3"/></svg>
-      </button>
-      <div class="popover" id="popShapes">
-        <label>Forma</label>
-        <div class="shapeGrid" id="shapeGrid">
-          <button data-shape="line" title="Linea"><svg class="ic" viewBox="0 0 24 24" stroke="#2980b9"><line x1="3" y1="21" x2="21" y2="3"/></svg></button>
-          <button data-shape="square" title="Quadrato"><svg class="ic" viewBox="0 0 24 24" stroke="#2980b9"><rect x="4" y="4" width="16" height="16"/></svg></button>
-          <button data-shape="rect" title="Rettangolo"><svg class="ic" viewBox="0 0 24 24" stroke="#2980b9"><rect x="2.5" y="6" width="19" height="12"/></svg></button>
-          <button data-shape="circle" title="Cerchio"><svg class="ic" viewBox="0 0 24 24" stroke="#2980b9"><circle cx="12" cy="12" r="9"/></svg></button>
-          <button data-shape="triangle" title="Triangolo"><svg class="ic" viewBox="0 0 24 24" stroke="#2980b9"><path d="M12 3 L21 20 L3 20 Z"/></svg></button>
+        <button class="iconBtn" id="btnText" title="Testo">
+          <svg class="ic" viewBox="0 0 24 24" stroke="none"><text x="12" y="18" font-family="Georgia, serif" font-size="18" font-weight="bold" text-anchor="middle" fill="#8e44ad">A</text></svg>
+        </button>
+        <div class="popover" id="popText">
+          <label>Tipo di carattere</label>
+          <select id="textFont">
+            <option value="Georgia, serif">Georgia (serif)</option>
+            <option value="Arial, sans-serif" selected>Arial (sans-serif)</option>
+            <option value="'Courier New', monospace">Courier (monospace)</option>
+            <option value="'Comic Sans MS', cursive">Comic Sans</option>
+          </select>
+          <label>Dimensione (<span id="textSizeVal">18</span> px)</label>
+          <input type="range" id="textSize" min="8" max="60" value="18">
+          <div class="row" style="margin-top:8px; gap:6px;">
+            <button class="iconBtn small" id="textBoldBtn" title="Grassetto" style="width:34px;height:30px;"><b style="font-size:15px;">G</b></button>
+            <button class="iconBtn small" id="textItalicBtn" title="Corsivo" style="width:34px;height:30px;"><i style="font-size:15px;">C</i></button>
+          </div>
+          <label>Colore</label>
+          <input type="color" id="textColor" value="#1a1a1a">
+          <div style="margin-top:8px; color:#555;">Poi clicca sul foglio nel punto in cui vuoi scrivere.</div>
         </div>
-        <label>Colore</label>
-        <input type="color" id="shapeColor" value="#1a1a1a">
-        <label>Spessore (<span id="shapeWidthVal">2</span> px)</label>
-        <input type="range" id="shapeWidth" min="1" max="12" value="2">
-        <div style="margin-top:8px; color:#555;">Poi trascina sul foglio per disegnare la forma.</div>
+
+        <button class="iconBtn" id="btnImage" title="Immagine">
+          <svg class="ic" viewBox="0 0 24 24" stroke="#16a085"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.3" cy="9.3" r="1.6" fill="#16a085" stroke="none"/><path d="M3.5 17 L9 11 L13 15 L16 12 L20.5 16.5"/></svg>
+        </button>
+        <input type="file" id="imageFileInput" accept="image/*" hidden>
+
+        <button class="iconBtn" id="btnShapes" title="Forme">
+          <svg class="ic" viewBox="0 0 24 24" stroke="#2980b9"><rect x="2.5" y="9" width="9" height="9"/><circle cx="17" cy="8" r="5.3"/></svg>
+        </button>
+        <div class="popover" id="popShapes">
+          <label>Forma</label>
+          <div class="shapeGrid" id="shapeGrid">
+            <button data-shape="line" title="Linea"><svg class="ic" viewBox="0 0 24 24" stroke="#2980b9"><line x1="3" y1="21" x2="21" y2="3"/></svg></button>
+            <button data-shape="rect" title="Rettangolo"><svg class="ic" viewBox="0 0 24 24" stroke="#2980b9"><rect x="2.5" y="6" width="19" height="12"/></svg></button>
+            <button data-shape="circle" title="Cerchio"><svg class="ic" viewBox="0 0 24 24" stroke="#2980b9"><circle cx="12" cy="12" r="9"/></svg></button>
+            <button data-shape="triangle" title="Triangolo"><svg class="ic" viewBox="0 0 24 24" stroke="#2980b9"><path d="M12 3 L21 20 L3 20 Z"/></svg></button>
+            <button data-shape="arrow" title="Freccia"><svg class="ic" viewBox="0 0 24 24" stroke="#2980b9"><line x1="4" y1="20" x2="19" y2="5"/><path d="M11 5 L19 5 L19 13"/></svg></button>
+          </div>
+          <label>Colore</label>
+          <input type="color" id="shapeColor" value="#1a1a1a">
+          <label>Spessore (<span id="shapeWidthVal">2</span> px)</label>
+          <input type="range" id="shapeWidth" min="1" max="12" value="2">
+          <div style="margin-top:8px; color:#555;">Poi trascina sul foglio per disegnare.</div>
+        </div>
+
+        <button class="iconBtn" id="btnRemoveSystem" title="Elimina pentagramma selezionato">
+          <svg class="ic" viewBox="0 0 24 24" stroke="#c0392b"><line x1="2" y1="7" x2="15" y2="7"/><line x1="2" y1="10.3" x2="15" y2="10.3"/><line x1="2" y1="13.6" x2="15" y2="13.6"/><line x1="2" y1="17" x2="15" y2="17"/><line x1="17" y1="8" x2="23" y2="16"/><line x1="23" y1="8" x2="17" y2="16"/></svg>
+        </button>
+        <button class="iconBtn" id="btnAddSystem" title="Aggiungi pentagramma">
+          <svg class="ic" viewBox="0 0 24 24" stroke="#34495e"><line x1="2" y1="7" x2="15" y2="7"/><line x1="2" y1="10.3" x2="15" y2="10.3"/><line x1="2" y1="13.6" x2="15" y2="13.6"/><line x1="2" y1="17" x2="15" y2="17"/><line x1="19" y1="6" x2="19" y2="18"/><line x1="13" y1="12" x2="23" y2="12"/></svg>
+        </button>
+        <button class="iconBtn" id="btnSelectSystem" title="Seleziona un pentagramma (per eliminarlo)">
+          <svg class="ic" viewBox="0 0 24 24" stroke="#2f6fb3"><line x1="3" y1="8" x2="16" y2="8"/><line x1="3" y1="11.3" x2="16" y2="11.3"/><line x1="3" y1="14.6" x2="16" y2="14.6"/><line x1="3" y1="18" x2="16" y2="18"/><rect x="0.5" y="5" width="18" height="16" stroke-dasharray="2.5 2"/></svg>
+        </button>
       </div>
+    </div>
 
-      <button class="iconBtn" id="btnArrow" title="Frecce">
-        <svg class="ic" viewBox="0 0 24 24" stroke="#c0392b"><line x1="4" y1="20" x2="19" y2="5"/><path d="M11 5 L19 5 L19 13"/></svg>
-      </button>
-      <div class="popover" id="popArrow">
-        <label>Colore</label>
-        <input type="color" id="arrowColor" value="#1a1a1a">
-        <label>Spessore (<span id="arrowWidthVal">2</span> px)</label>
-        <input type="range" id="arrowWidth" min="1" max="10" value="2">
-        <div style="margin-top:8px; color:#555;">Poi trascina sul foglio per disegnare la freccia.</div>
-      </div>
-
-      <button class="iconBtn" id="btnRemoveSystem" title="Elimina pentagramma selezionato">
-        <svg class="ic" viewBox="0 0 24 24" stroke="#c0392b"><line x1="2" y1="7" x2="15" y2="7"/><line x1="2" y1="10.3" x2="15" y2="10.3"/><line x1="2" y1="13.6" x2="15" y2="13.6"/><line x1="2" y1="17" x2="15" y2="17"/><line x1="17" y1="8" x2="23" y2="16"/><line x1="23" y1="8" x2="17" y2="16"/></svg>
-      </button>
-      <button class="iconBtn" id="btnAddSystem" title="Aggiungi pentagramma">
-        <svg class="ic" viewBox="0 0 24 24" stroke="#34495e"><line x1="2" y1="7" x2="15" y2="7"/><line x1="2" y1="10.3" x2="15" y2="10.3"/><line x1="2" y1="13.6" x2="15" y2="13.6"/><line x1="2" y1="17" x2="15" y2="17"/><line x1="19" y1="6" x2="19" y2="18"/><line x1="13" y1="12" x2="23" y2="12"/></svg>
-      </button>
-      <button class="iconBtn" id="btnSelectSystem" title="Seleziona un pentagramma (per eliminarlo)">
-        <svg class="ic" viewBox="0 0 24 24" stroke="#2f6fb3"><line x1="3" y1="8" x2="16" y2="8"/><line x1="3" y1="11.3" x2="16" y2="11.3"/><line x1="3" y1="14.6" x2="16" y2="14.6"/><line x1="3" y1="18" x2="16" y2="18"/><rect x="0.5" y="5" width="18" height="16" stroke-dasharray="2.5 2"/></svg>
-      </button>
-
-      <div class="accSep"></div>
-      <button class="iconBtn" id="btnDeleteSel" title="Elimina l'elemento selezionato (o premi Canc, o clic destro sull'elemento)">
-        <svg class="ic" viewBox="0 0 24 24" stroke="#c0392b"><path d="M4 7 H20 M9 7 V4 H15 V7 M6.5 7 L7.5 21 H16.5 L17.5 7"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
-      </button>
-      <button class="iconBtn" id="btnFullscreen" title="Schermo intero">
-        <svg class="ic" viewBox="0 0 24 24" stroke="#34495e"><path d="M4 9 V4 H9"/><path d="M15 4 H20 V9"/><path d="M20 15 V20 H15"/><path d="M9 20 H4 V15"/></svg>
-      </button>
-
-      <div class="accSep"></div>
-      <button class="iconBtn small" id="zoomMinus" title="Riduci dimensione foglio">
-        <svg class="ic" viewBox="0 0 24 24" stroke="#34495e"><line x1="4" y1="12" x2="20" y2="12"/></svg>
-      </button>
-      <input type="range" id="zoomSlider" min="40" max="200" value="100" step="5">
-      <button class="iconBtn small" id="zoomPlus" title="Aumenta dimensione foglio">
-        <svg class="ic" viewBox="0 0 24 24" stroke="#34495e"><line x1="4" y1="12" x2="20" y2="12"/><line x1="12" y1="4" x2="12" y2="20"/></svg>
-      </button>
-      <span id="zoomLabel">100%</span>
     </div>
     </div>
   </div>
 
   <div id="infoRow">
-    <label>Titolo <input type="text" id="titoloInput" class="wide" placeholder="Titolo del brano"></label>
-    <label>Cognome e Nome <input type="text" id="nomeInput" class="wide" placeholder="Cognome e Nome dell'alunno/a"></label>
+    <label>Titolo <input type="text" id="titoloInput" placeholder="Titolo del brano"></label>
+    <label>Cognome e Nome <input type="text" id="nomeInput" placeholder="Cognome e Nome dell'alunno/a"></label>
   </div>
 
   <div id="canvasScroll">
@@ -409,23 +402,25 @@ var PAGE_W = 1123, PAGE_H = 794;
 var PX_PER_MM = PAGE_W / 297;
 
 /* ---------------------------------------------------------------------
-   3. Layout dei righi: UNICO e condiviso da entrambi i tipi di foglio
-      (stessa dimensione, stesso distanziamento fra le linee e stesso
-      distanziamento fra i pentagrammi).
+   3. Layout dei righi: identico per ogni pagina (stessa dimensione,
+      stesso distanziamento fra le linee e fra i pentagrammi). Non
+      esistono piu' "tipi" di foglio: ogni pagina ha tutti gli elementi
+      trascinabili e nessuna battuta pre-tracciata.
    --------------------------------------------------------------------- */
 var LAYOUT = {
   sp: 13,
   nSystems: 4,
-  marginX: 55,
-  marginTop: 50,
-  marginBottom: 20,
-  fixedGap: 108
+  marginX: 14 * PX_PER_MM,
+  marginTop: 15 * PX_PER_MM,
+  marginBottom: 18,
+  fixedGap: 132
 };
 
-var PAGE_TYPES = {
-  1: { type: 1, label: "Foglio 1", fixedMeasures: 4, hasBarlineTool: false, hasBraceTool: false },
-  2: { type: 2, label: "Foglio 2", fixedMeasures: 0, hasBarlineTool: true, hasBraceTool: true }
-};
+/* Dimensione degli elementi SOLO nella tavolozza (barra in alto): e'
+   indipendente da LAYOUT.sp, che invece governa la dimensione reale del
+   pentagramma nel foglio di lavoro e non deve mai essere ridotta per
+   motivi di spazio dell'interfaccia. */
+var PALETTE_SP = 8;
 
 function systemLayout(nSystems) {
   nSystems = nSystems || LAYOUT.nSystems;
@@ -461,12 +456,15 @@ function timesigYs(midY, sp) {
   return { num: midY - gapPx / 2 - half, den: midY + gapPx / 2 + half };
 }
 
+/* punti tipografici -> unita' SVG (coerenti con PX_PER_MM) */
+var PT_TO_UNIT = PX_PER_MM * 0.3528;
+
 /* ---------------------------------------------------------------------
-   4. Stato applicativo: un elenco di pagine, ciascuna di tipo 1 o 2
+   4. Stato applicativo: un elenco di pagine. Non esistono piu' "tipi" di
+      foglio: ogni pagina ha tutti gli elementi trascinabili e nessuna
+      battuta pre-tracciata (era il comportamento del vecchio "Foglio 2").
    --------------------------------------------------------------------- */
 var state = {
-  titolo: "",
-  nome: "",
   pages: [],
   activePageId: null,
   selectedId: null,
@@ -476,14 +474,14 @@ var state = {
   zoom: 100
 };
 
-var activeTool = "select"; // select | pencil | text | image | shape | arrow
+var activeTool = "select"; // select | pencil | eraser | text | image | shape | select-system
 var activeShape = "line";
 
 function newId() { return "el" + (state.nextId++); }
 function newPageId() { return "pg" + (state.nextPageId++); }
 
-function addPage(type) {
-  var p = { id: newPageId(), type: type, items: [], nSystems: LAYOUT.nSystems };
+function addPage() {
+  var p = { id: newPageId(), items: [], nSystems: LAYOUT.nSystems, titolo: "", nome: "" };
   state.pages.push(p);
   return p;
 }
@@ -519,24 +517,22 @@ function getActivePage() {
   return state.pages[0];
 }
 function currentItems() { return getActivePage().items; }
-function currentPageType() { return getActivePage().type; }
-function currentTypeCfg() { return PAGE_TYPES[currentPageType()]; }
 
 /* ---------------------------------------------------------------------
-   5. Definizione degli elementi trascinabili (tavolozza), per tipo
+   5. Definizione degli elementi trascinabili (tavolozza): sempre tutti
+      disponibili (chiavi, stanghette, parentesi graffa, figure fino al
+      sedicesimo).
    --------------------------------------------------------------------- */
-function paletteForType(type) {
+function paletteItems() {
   var items = [];
   items.push({ kind: "clef-g", glyph: GLYPH.gClef, snapI: 6 });
   items.push({ kind: "clef-f", glyph: GLYPH.fClef, snapI: 2 });
 
-  if (PAGE_TYPES[type].hasBarlineTool) {
-    items.push({ kind: "barline-short-thin" });
-    items.push({ kind: "barline-short-thick" });
-    items.push({ kind: "brace" });
-    items.push({ kind: "barline-long-thin" });
-    items.push({ kind: "barline-long-thick" });
-  }
+  items.push({ kind: "barline-short-thin" });
+  items.push({ kind: "barline-short-thick" });
+  items.push({ kind: "brace" });
+  items.push({ kind: "barline-long-thin" });
+  items.push({ kind: "barline-long-thick" });
 
   var sigs = ["2/4", "3/4", "4/4", "3/8", "6/8"];
   for (var i = 0; i < sigs.length; i++) {
@@ -553,17 +549,13 @@ function paletteForType(type) {
   items.push({ kind: "note", sub: "quarter-down", glyph: GLYPH.noteQuarterDown });
   items.push({ kind: "note", sub: "eighth-up", glyph: GLYPH.note8thUp });
   items.push({ kind: "note", sub: "eighth-down", glyph: GLYPH.note8thDown });
-  if (PAGE_TYPES[type].hasBarlineTool) {
-    items.push({ kind: "note", sub: "sixteenth-up", glyph: GLYPH.note16thUp });
-    items.push({ kind: "note", sub: "sixteenth-down", glyph: GLYPH.note16thDown });
-  }
+  items.push({ kind: "note", sub: "sixteenth-up", glyph: GLYPH.note16thUp });
+  items.push({ kind: "note", sub: "sixteenth-down", glyph: GLYPH.note16thDown });
 
   items.push({ kind: "rest", sub: "whole", glyph: GLYPH.restWhole });
   items.push({ kind: "rest", sub: "quarter", glyph: GLYPH.restQuarter });
   items.push({ kind: "rest", sub: "eighth", glyph: GLYPH.rest8th });
-  if (PAGE_TYPES[type].hasBarlineTool) {
-    items.push({ kind: "rest", sub: "sixteenth", glyph: GLYPH.rest16th });
-  }
+  items.push({ kind: "rest", sub: "sixteenth", glyph: GLYPH.rest16th });
 
   items.push({ kind: "dot", glyph: GLYPH.augmentationDot });
 
@@ -647,19 +639,18 @@ var paletteItemsCache = [];
 
 function renderPalette() {
   var svg = document.getElementById("paletteSvg");
-  var type = currentPageType();
-  var sp = LAYOUT.sp;
+  var sp = PALETTE_SP;
   var fs = FS(sp);
-  var items = paletteForType(type);
+  var items = paletteItems();
   paletteItemsCache = items;
 
-  var VB_H = 170;
-  var y0 = 20;
+  var VB_H = 95;
+  var y0 = 11;
   var L0 = y0, L2 = y0 + sp * 2, L4 = y0 + sp * 4, L6 = y0 + sp * 6, L8 = y0 + sp * 8;
 
   var out = [];
-  var x = 26;
-  var GAP = 16;
+  var x = 13;
+  var GAP = 9;
 
   for (var i = 0; i < items.length; i++) {
     var it = items[i];
@@ -781,11 +772,11 @@ function renderSheetSvg() {
   attachSheetHandlers(svg);
 }
 
-/* Costruisce il markup SVG (righi + eventuali battute fisse + elementi)
-   per una QUALSIASI pagina, senza toccare la vista corrente. Usata sia
-   dalla vista live sia dall'esportazione PDF multipagina. */
+/* Costruisce il markup SVG (righi + elementi) per una QUALSIASI pagina,
+   senza toccare la vista corrente. Usata sia dalla vista live sia
+   dall'esportazione PDF multipagina. Non ci sono piu' battute
+   pre-tracciate: le stanghette sono sempre elementi trascinabili. */
 function buildSheetSvgMarkup(page, systems) {
-  var typeCfg = PAGE_TYPES[page.type];
   var sp = LAYOUT.sp;
   var out = [];
 
@@ -798,26 +789,6 @@ function buildSheetSvgMarkup(page, systems) {
     }
   }
   out.push("</g>");
-
-  if (typeCfg.fixedMeasures > 0) {
-    for (var s2 = 0; s2 < systems.length; s2++) {
-      var sysB = systems[s2];
-      var top = sysB.y0, bot = sysB.y0 + 4 * sp;
-      var innerLeft = sysB.x0 + 3.2 * sp;
-      var innerW = sysB.x1 - innerLeft;
-      var mw = innerW / typeCfg.fixedMeasures;
-      for (var m = 1; m <= typeCfg.fixedMeasures; m++) {
-        var bx = innerLeft + m * mw;
-        var isLast = (s2 === systems.length - 1) && (m === typeCfg.fixedMeasures);
-        if (isLast) {
-          out.push('<line x1="' + (bx - 4).toFixed(2) + '" y1="' + top + '" x2="' + (bx - 4).toFixed(2) + '" y2="' + bot + '" stroke="black" stroke-width="1.4"/>');
-          out.push('<line x1="' + (bx + 2).toFixed(2) + '" y1="' + top + '" x2="' + (bx + 2).toFixed(2) + '" y2="' + bot + '" stroke="black" stroke-width="4.5"/>');
-        } else {
-          out.push('<line x1="' + bx.toFixed(2) + '" y1="' + top + '" x2="' + bx.toFixed(2) + '" y2="' + bot + '" stroke="black" stroke-width="1.4"/>');
-        }
-      }
-    }
-  }
 
   for (var k = 0; k < page.items.length; k++) {
     out.push(renderPlacedItem(page.items[k], systems, sp));
@@ -1102,11 +1073,12 @@ function computePlacement(def, x, y, systems) {
 }
 
 /* Il rettangolino di pausa (intera/di meta') si calamita solo su due
-   posizioni convenzionali: appeso sotto il quarto rigo, oppure appoggiato
-   sopra il terzo rigo (quello centrale). */
+   posizioni convenzionali: appeso sotto il quarto rigo (contando dal
+   basso, cioe' il secondo rigo dall'alto) oppure appoggiato sopra il
+   terzo rigo (quello centrale). */
 function wholeRestSlot(sys, y) {
-  var yBelow = lineY(sys, 6), yAbove = lineY(sys, 4);
-  if (Math.abs(y - yBelow) <= Math.abs(y - yAbove)) return { snapI: 6, orientation: "below" };
+  var yBelow = lineY(sys, 2), yAbove = lineY(sys, 4);
+  if (Math.abs(y - yBelow) <= Math.abs(y - yAbove)) return { snapI: 2, orientation: "below" };
   return { snapI: 4, orientation: "above" };
 }
 
@@ -1163,6 +1135,13 @@ function findItemById(id) {
 }
 
 function onItemDown(e) {
+  if (activeTool === "eraser") {
+    e.stopPropagation(); e.preventDefault();
+    var idE = e.currentTarget.getAttribute("data-id");
+    removeItemById(idE);
+    drag = { type: "erase" };
+    return;
+  }
   e.stopPropagation();
   e.preventDefault();
   var id = e.currentTarget.getAttribute("data-id");
@@ -1195,12 +1174,21 @@ function onSheetBackgroundDown(e) {
   var p = svgPointFrom(svg, e.clientX, e.clientY);
 
   if (activeTool === "select-system") {
+    e.preventDefault();
     state.selectedSystemIndex = nearestSystemIndex(p.y, systemsCache);
     renderSheetSvg();
     return;
   }
 
+  if (activeTool === "eraser") {
+    e.preventDefault();
+    drag = { type: "erase" };
+    eraseAt(p.x, p.y);
+    return;
+  }
+
   if (activeTool === "pencil") {
+    e.preventDefault();
     var it = { id: newId(), kind: "pencil", points: [[p.x, p.y]], color: pencilColorEl.value, width: parseFloat(pencilWidthEl.value) };
     currentItems().push(it);
     drag = { type: "draw-pencil", id: it.id };
@@ -1208,25 +1196,44 @@ function onSheetBackgroundDown(e) {
     return;
   }
   if (activeTool === "shape") {
+    e.preventDefault();
+    if (activeShape === "arrow") {
+      var ar = { id: newId(), kind: "arrow", x1: p.x, y1: p.y, x2: p.x, y2: p.y, color: shapeColorEl.value, width: parseFloat(shapeWidthEl.value) };
+      currentItems().push(ar);
+      drag = { type: "draw-arrow", id: ar.id };
+      renderSheetSvg();
+      return;
+    }
     var sh = { id: newId(), kind: "shape", shape: activeShape, x: p.x, y: p.y, w: 0, h: 0, x1: p.x, y1: p.y, x2: p.x, y2: p.y, color: shapeColorEl.value, width: parseFloat(shapeWidthEl.value) };
     currentItems().push(sh);
     drag = { type: "draw-shape", id: sh.id, startX: p.x, startY: p.y };
     renderSheetSvg();
     return;
   }
-  if (activeTool === "arrow") {
-    var ar = { id: newId(), kind: "arrow", x1: p.x, y1: p.y, x2: p.x, y2: p.y, color: arrowColorEl.value, width: parseFloat(arrowWidthEl.value) };
-    currentItems().push(ar);
-    drag = { type: "draw-arrow", id: ar.id };
-    renderSheetSvg();
-    return;
-  }
   if (activeTool === "text") {
+    e.preventDefault();
     startTextEditingAt(p.x, p.y);
     return;
   }
   /* select: click su sfondo = deseleziona */
   if (state.selectedId !== null) { state.selectedId = null; renderSheetSvg(); }
+}
+
+/* Gomma: cancella qualunque elemento la cui area (approssimata) contiene
+   il punto dato. Usata sia al tocco iniziale sia durante il trascinamento. */
+function eraseAt(px, py) {
+  var items = currentItems();
+  var removed = false;
+  var pad = 5;
+  for (var i = items.length - 1; i >= 0; i--) {
+    var b = itemAnchorForUi(items[i], systemsCache, LAYOUT.sp);
+    if (px >= b.x - pad && px <= b.x + b.w + pad && py >= b.y - pad && py <= b.y + b.h + pad) {
+      if (state.selectedId === items[i].id) state.selectedId = null;
+      items.splice(i, 1);
+      removed = true;
+    }
+  }
+  if (removed) { renderSheetSvg(); saveLocalDebounced(); }
 }
 
 function cloneItem(it) {
@@ -1306,16 +1313,23 @@ document.addEventListener("pointermove", function (e) {
     return;
   }
 
+  if (drag.type === "erase") {
+    var pErase = svgPointFrom(svg, e.clientX, e.clientY);
+    eraseAt(pErase.x, pErase.y);
+    return;
+  }
+
   if (drag.type === "draw-shape") {
     var it3 = findItemById(drag.id);
     if (!it3) return;
     var p4 = svgPointFrom(svg, e.clientX, e.clientY);
+    if (it3.shape === "line") {
+      it3.x2 = p4.x; it3.y2 = p4.y;
+      renderSheetSvg();
+      return;
+    }
     var x0 = drag.startX, y0 = drag.startY;
     var w = p4.x - x0, h = p4.y - y0;
-    if (it3.shape === "square") {
-      var side = Math.max(Math.abs(w), Math.abs(h));
-      w = (w < 0 ? -1 : 1) * side; h = (h < 0 ? -1 : 1) * side;
-    }
     it3.x = w >= 0 ? x0 : x0 + w;
     it3.y = h >= 0 ? y0 : y0 + h;
     it3.w = Math.abs(w); it3.h = Math.abs(h);
@@ -1370,8 +1384,8 @@ document.addEventListener("pointerup", function (e) {
       if (lastClickInfo.id === drag.id && (now - lastClickInfo.t) < 420) {
         var it6 = findItemById(drag.id);
         if (it6 && it6.kind === "rest" && it6.sub === "whole") {
-          it6.snapI = (it6.snapI === 6) ? 4 : 6;
-          it6.orientation = (it6.snapI === 6) ? "below" : "above";
+          it6.snapI = (it6.snapI === 2) ? 4 : 2;
+          it6.orientation = (it6.snapI === 2) ? "below" : "above";
         }
       }
       lastClickInfo = { id: drag.id, t: now };
@@ -1444,8 +1458,8 @@ document.addEventListener("keydown", function (e) {
       var maxIdx = (item.kind === "brace" || isLongBarline(item.kind)) ? (systemsCache.length - 2) : (systemsCache.length - 1);
       item.systemIndex = Math.max(0, Math.min(maxIdx, item.systemIndex + (dirUp ? -1 : 1)));
     } else if (item.kind === "rest" && item.sub === "whole") {
-      item.snapI = (item.snapI === 6) ? 4 : 6;
-      item.orientation = (item.snapI === 6) ? "below" : "above";
+      item.snapI = (item.snapI === 2) ? 4 : 2;
+      item.orientation = (item.snapI === 2) ? "below" : "above";
     } else if (item.kind === "rest" && item.sub === "quarter") {
       /* posizione fissa: centrata fra il primo e il quinto rigo */
     } else if ("snapI" in item) {
@@ -1456,11 +1470,6 @@ document.addEventListener("keydown", function (e) {
     saveLocalDebounced();
     return;
   }
-});
-
-document.getElementById("btnDeleteSel").addEventListener("pointerdown", function (e) {
-  e.preventDefault();
-  if (state.selectedId) removeItemById(state.selectedId);
 });
 
 /* ---------------------------------------------------------------------
@@ -1489,12 +1498,19 @@ function startTextEditingAt(svgX, svgY) {
   ta.style.resize = "both";
   ta.style.lineHeight = "1.25";
   pageOuter.appendChild(ta);
-  ta.focus();
 
+  /* Il focus e' rimandato al prossimo tick: chiamato in modo sincrono
+     dentro il gestore di pointerdown, alcuni browser lo annullano
+     subito dopo (comportamento predefinito del mousedown che sposta
+     il focus). Rimandandolo, il focus rimane sulla casella di testo. */
+  setTimeout(function () { ta.focus(); }, 0);
+
+  var committed = false;
   function commit() {
+    if (committed) return;
+    committed = true;
     var val = ta.value;
-    pageOuter.removeChild(ta);
-    ta.removeEventListener("blur", commit);
+    if (ta.parentNode) ta.parentNode.removeChild(ta);
     if (val && val.replace(/\s/g, "").length > 0) {
       var lines = val.split("\n");
       var it = {
@@ -1514,20 +1530,20 @@ function startTextEditingAt(svgX, svgY) {
     if (ev.key === "Enter" && ev.ctrlKey) { ta.blur(); }
     ev.stopPropagation();
   });
+  ta.addEventListener("pointerdown", function (ev) { ev.stopPropagation(); });
 }
 
 /* ---------------------------------------------------------------------
-   16. Pagine: tabs dinamici, creazione di nuove pagine, cambio pagina
+   16. Pagine: tabs dinamici, creazione, cambio, riordino per trascinamento
    --------------------------------------------------------------------- */
 function pageDisplayLabel(page) {
   if (page.customName) return page.customName;
-  var sameTypeBefore = 0;
-  for (var i = 0; i < state.pages.length; i++) {
-    if (state.pages[i].type === page.type) sameTypeBefore++;
-    if (state.pages[i].id === page.id) break;
-  }
-  return "Foglio " + page.type + " - " + sameTypeBefore;
+  var idx = state.pages.indexOf(page);
+  return "Foglio " + (idx + 1);
 }
+
+var tabDrag = null;
+var justDraggedTab = false;
 
 function renderPageTabs() {
   var wrap = document.getElementById("pageTabs");
@@ -1543,7 +1559,13 @@ function renderPageTabs() {
   wrap.innerHTML = out.join("\n");
 
   Array.prototype.forEach.call(wrap.querySelectorAll(".pageTab"), function (el) {
+    el.addEventListener("pointerdown", function (e) {
+      if (e.target && e.target.closest && e.target.closest(".closeX,.tabRenameInput")) return;
+      e.preventDefault();
+      tabDrag = { id: el.getAttribute("data-id"), startX: e.clientX, moved: false };
+    });
     el.addEventListener("click", function (e) {
+      if (justDraggedTab) return;
       if (e.target && e.target.getAttribute && (e.target.getAttribute("data-close") || e.target.classList.contains("tabRenameInput"))) return;
       var id = el.getAttribute("data-id");
       if (id === state.activePageId) return; /* gia' attiva: non ridisegnare (permette il doppio clic per rinominare) */
@@ -1566,6 +1588,43 @@ function renderPageTabs() {
     });
   });
 }
+
+/* Trascinamento orizzontale delle schede per riordinarle: quando il
+   puntatore supera il punto medio di un'altra scheda, le due si scambiano
+   di posizione nell'elenco delle pagine. */
+document.addEventListener("pointermove", function (e) {
+  if (!tabDrag) return;
+  if (!tabDrag.moved && Math.abs(e.clientX - tabDrag.startX) < 6) return;
+  tabDrag.moved = true;
+  var wrap = document.getElementById("pageTabs");
+  var tabs = wrap.querySelectorAll(".pageTab");
+  var draggedIdx = -1;
+  for (var a = 0; a < state.pages.length; a++) if (state.pages[a].id === tabDrag.id) draggedIdx = a;
+  if (draggedIdx === -1) return;
+  for (var i = 0; i < tabs.length; i++) {
+    var overId = tabs[i].getAttribute("data-id");
+    if (overId === tabDrag.id) continue;
+    var r = tabs[i].getBoundingClientRect();
+    var mid = r.left + r.width / 2;
+    var overIdx = -1;
+    for (var b = 0; b < state.pages.length; b++) if (state.pages[b].id === overId) overIdx = b;
+    if (overIdx === -1) continue;
+    if ((e.clientX < mid && draggedIdx > overIdx) || (e.clientX > mid && draggedIdx < overIdx)) {
+      var moved = state.pages.splice(draggedIdx, 1)[0];
+      state.pages.splice(overIdx, 0, moved);
+      renderPageTabs();
+      break;
+    }
+  }
+});
+document.addEventListener("pointerup", function () {
+  if (tabDrag && tabDrag.moved) {
+    justDraggedTab = true;
+    saveLocalDebounced();
+    setTimeout(function () { justDraggedTab = false; }, 80);
+  }
+  tabDrag = null;
+});
 
 function startTabRename(labelEl) {
   var id = labelEl.getAttribute("data-id");
@@ -1601,8 +1660,10 @@ function switchPage(id) {
   state.activePageId = id;
   state.selectedId = null;
   state.selectedSystemIndex = null;
+  var page = getActivePage();
+  titoloInput.value = page.titolo || "";
+  nomeInput.value = page.nome || "";
   renderPageTabs();
-  renderPalette();
   renderSheetSvg();
 }
 
@@ -1616,19 +1677,16 @@ function removePage(id) {
     state.activePageId = state.pages[newIdx].id;
   }
   state.selectedId = null;
+  var activePage = getActivePage();
+  titoloInput.value = activePage.titolo || "";
+  nomeInput.value = activePage.nome || "";
   renderPageTabs();
-  renderPalette();
   renderSheetSvg();
   saveLocalDebounced();
 }
 
-document.getElementById("btnAddPage1").addEventListener("click", function () {
-  var p = addPage(1);
-  switchPage(p.id);
-  saveLocalDebounced();
-});
-document.getElementById("btnAddPage2").addEventListener("click", function () {
-  var p = addPage(2);
+document.getElementById("btnAddPage").addEventListener("click", function () {
+  var p = addPage();
   switchPage(p.id);
   saveLocalDebounced();
 });
@@ -1658,12 +1716,51 @@ zoomSlider.addEventListener("input", function () {
   applyZoom();
 });
 document.getElementById("zoomMinus").addEventListener("click", function () {
-  state.zoom = Math.max(40, state.zoom - 10);
+  state.zoom = Math.max(40, state.zoom - 1);
   applyZoom();
 });
 document.getElementById("zoomPlus").addEventListener("click", function () {
-  state.zoom = Math.min(200, state.zoom + 10);
+  state.zoom = Math.min(200, state.zoom + 1);
   applyZoom();
+});
+
+/* ---------------------------------------------------------------------
+   17b. Interfaccia responsiva: le due righe di strumenti (icone) non
+   vanno mai a capo. Se lo spazio disponibile e' inferiore alla loro
+   larghezza naturale, l'intera riga (icone, testo, spaziature comprese)
+   viene rimpicciolita in proporzione con una trasformazione di scala.
+   --------------------------------------------------------------------- */
+function fitToolsRow(wrapId, innerId) {
+  var wrap = document.getElementById(wrapId);
+  var inner = document.getElementById(innerId);
+  if (!wrap || !inner) return 1;
+  inner.style.transform = "none";
+  var availW = wrap.clientWidth;
+  var naturalW = inner.scrollWidth;
+  if (availW > 0 && naturalW > availW) return availW / naturalW;
+  return 1;
+}
+function applyToolsRowScale(wrapId, innerId, scale) {
+  var wrap = document.getElementById(wrapId);
+  var inner = document.getElementById(innerId);
+  if (!wrap || !inner) return;
+  var naturalH = inner.scrollHeight;
+  if (scale < 1) {
+    inner.style.transform = "scale(" + scale + ")";
+    wrap.style.height = (naturalH * scale) + "px";
+  } else {
+    inner.style.transform = "none";
+    wrap.style.height = "";
+  }
+}
+function fitAllToolsRows() {
+  var s = fitToolsRow("toolsRowWrap", "toolsRow");
+  applyToolsRowScale("toolsRowWrap", "toolsRow", Math.min(s, 1));
+}
+var __fitResizeT = null;
+window.addEventListener("resize", function () {
+  clearTimeout(__fitResizeT);
+  __fitResizeT = setTimeout(fitAllToolsRows, 120);
 });
 
 /* ---------------------------------------------------------------------
@@ -1685,14 +1782,9 @@ var shapeColorEl = document.getElementById("shapeColor");
 var shapeWidthEl = document.getElementById("shapeWidth");
 var shapeWidthVal = document.getElementById("shapeWidthVal");
 
-var arrowColorEl = document.getElementById("arrowColor");
-var arrowWidthEl = document.getElementById("arrowWidth");
-var arrowWidthVal = document.getElementById("arrowWidthVal");
-
 pencilWidthEl.addEventListener("input", function () { pencilWidthVal.textContent = pencilWidthEl.value; });
 textSizeEl.addEventListener("input", function () { textSizeVal.textContent = textSizeEl.value; });
 shapeWidthEl.addEventListener("input", function () { shapeWidthVal.textContent = shapeWidthEl.value; });
-arrowWidthEl.addEventListener("input", function () { arrowWidthVal.textContent = arrowWidthEl.value; });
 
 textBoldBtn.addEventListener("click", function () {
   textBoldOn = !textBoldOn;
@@ -1704,7 +1796,7 @@ textItalicBtn.addEventListener("click", function () {
 });
 
 /* ---------------------------------------------------------------------
-   19. Selettore di forma dentro il popover "Forme"
+   19. Selettore di forma dentro il popover "Forme" (comprende la freccia)
    --------------------------------------------------------------------- */
 var shapeGrid = document.getElementById("shapeGrid");
 Array.prototype.forEach.call(shapeGrid.querySelectorAll("button"), function (btn) {
@@ -1720,18 +1812,17 @@ shapeGrid.querySelector('button[data-shape="line"]').classList.add("sel");
    --------------------------------------------------------------------- */
 var toolButtons = {
   pencil: document.getElementById("btnPencil"),
+  eraser: document.getElementById("btnEraser"),
   text: document.getElementById("btnText"),
   image: document.getElementById("btnImage"),
   shape: document.getElementById("btnShapes"),
-  arrow: document.getElementById("btnArrow"),
   select: document.getElementById("btnSelectTool"),
   "select-system": document.getElementById("btnSelectSystem")
 };
 var toolPopovers = {
   pencil: document.getElementById("popPencil"),
   text: document.getElementById("popText"),
-  shape: document.getElementById("popShapes"),
-  arrow: document.getElementById("popArrow")
+  shape: document.getElementById("popShapes")
 };
 
 function closeAllPopovers() {
@@ -1752,9 +1843,9 @@ function setActiveTool(tool, opts) {
 }
 
 toolButtons.pencil.addEventListener("click", function () { setActiveTool("pencil"); });
+toolButtons.eraser.addEventListener("click", function () { setActiveTool("eraser"); });
 toolButtons.text.addEventListener("click", function () { setActiveTool("text"); });
 toolButtons.shape.addEventListener("click", function () { setActiveTool("shape"); });
-toolButtons.arrow.addEventListener("click", function () { setActiveTool("arrow"); });
 toolButtons["select-system"].addEventListener("click", function () { setActiveTool("select-system"); });
 toolButtons.select.addEventListener("click", function () {
   activeTool = "select";
@@ -1813,10 +1904,11 @@ document.getElementById("imageFileInput").addEventListener("change", function (e
   e.target.value = "";
 });
 
-/* chiude i popover cliccando fuori */
+/* chiude i popover cliccando fuori (i popover si aprono dai tasti
+   della seconda fila di strumenti) */
 document.addEventListener("pointerdown", function (e) {
-  var accRow = document.getElementById("accessoryGroup");
-  if (!accRow.contains(e.target)) closeAllPopovers();
+  var row2 = document.getElementById("toolsRowWrap");
+  if (row2 && !row2.contains(e.target)) closeAllPopovers();
 });
 
 /* ---------------------------------------------------------------------
@@ -1856,26 +1948,26 @@ contattiOverlay.addEventListener("pointerdown", function (e) {
    --------------------------------------------------------------------- */
 var titoloInput = document.getElementById("titoloInput");
 var nomeInput = document.getElementById("nomeInput");
-titoloInput.addEventListener("input", function () { state.titolo = titoloInput.value; saveLocalDebounced(); });
-nomeInput.addEventListener("input", function () { state.nome = nomeInput.value; saveLocalDebounced(); });
+titoloInput.addEventListener("input", function () { getActivePage().titolo = titoloInput.value; saveLocalDebounced(); });
+nomeInput.addEventListener("input", function () { getActivePage().nome = nomeInput.value; saveLocalDebounced(); });
 
 /* ---------------------------------------------------------------------
    22. Salvataggio: locale automatico ("Salva"), su file ("Salva con
        nome"), apertura di un file precedentemente salvato ("Apri")
    --------------------------------------------------------------------- */
-var LOCAL_KEY = "pentagramma_lavoro_prof_guida_v2";
+var LOCAL_KEY = "pentagramma_lavoro_prof_guida_v4";
 var saveTimer = null;
 
 function serializeState() {
   return {
     format: "pentagramma-prof-guida",
-    version: 2,
-    titolo: state.titolo,
-    nome: state.nome,
+    version: 4,
     activePageId: state.activePageId,
     nextId: state.nextId,
     nextPageId: state.nextPageId,
-    pages: state.pages.map(function (p) { return { id: p.id, type: p.type, items: p.items, nSystems: p.nSystems, customName: p.customName || null }; })
+    pages: state.pages.map(function (p) {
+      return { id: p.id, items: p.items, nSystems: p.nSystems, customName: p.customName || null, titolo: p.titolo || "", nome: p.nome || "" };
+    })
   };
 }
 
@@ -1889,7 +1981,10 @@ function saveLocalNow() {
 }
 function saveLocalDebounced() {
   if (saveTimer) clearTimeout(saveTimer);
-  saveTimer = setTimeout(saveLocalNow, 600);
+  saveTimer = setTimeout(function () {
+    saveLocalNow();
+    pushHistory();
+  }, 600);
 }
 
 function loadLocalIfPresent() {
@@ -1906,22 +2001,31 @@ function loadLocalIfPresent() {
 }
 
 function applyLoadedData(data) {
-  state.titolo = data.titolo || "";
-  state.nome = data.nome || "";
   var pages = data.pages;
   if (!pages && data.sheets) {
-    /* compatibilita' con il formato a due fogli fissi della versione precedente */
+    /* compatibilita' con il formato ancora piu' vecchio a due fogli fissi */
     pages = [];
-    if (data.sheets[1]) pages.push({ id: "pg1", type: 1, items: data.sheets[1].items || [] });
-    if (data.sheets[2]) pages.push({ id: "pg2", type: 2, items: data.sheets[2].items || [] });
+    if (data.sheets[1]) pages.push({ id: "pg1", items: data.sheets[1].items || [] });
+    if (data.sheets[2]) pages.push({ id: "pg2", items: data.sheets[2].items || [] });
   }
-  state.pages = (pages && pages.length) ? pages : [{ id: "pg1", type: 1, items: [], nSystems: LAYOUT.nSystems }];
-  state.pages.forEach(function (pg) { if (!pg.nSystems) pg.nSystems = LAYOUT.nSystems; });
+  state.pages = (pages && pages.length) ? pages : [{ id: "pg1", items: [], nSystems: LAYOUT.nSystems, titolo: "", nome: "" }];
+  state.pages.forEach(function (pg) {
+    if (!pg.nSystems) pg.nSystems = LAYOUT.nSystems;
+    if (typeof pg.titolo !== "string") pg.titolo = "";
+    if (typeof pg.nome !== "string") pg.nome = "";
+  });
+  /* compatibilita' con il vecchio formato a titolo/nome unici (non per pagina):
+     se presenti e la prima pagina non ha gia' i suoi, li eredita. */
+  if ((data.titolo || data.nome) && !state.pages[0].titolo && !state.pages[0].nome) {
+    state.pages[0].titolo = data.titolo || "";
+    state.pages[0].nome = data.nome || "";
+  }
   state.activePageId = data.activePageId || state.pages[0].id;
   var validIds = state.pages.map(function (p) { return p.id; });
   if (validIds.indexOf(state.activePageId) === -1) state.activePageId = state.pages[0].id;
 
   state.selectedId = null;
+  state.selectedSystemIndex = null;
 
   var maxN = 0;
   state.pages.forEach(function (pg) {
@@ -1939,19 +2043,83 @@ function applyLoadedData(data) {
   });
   state.nextPageId = Math.max(maxP + 1, data.nextPageId || 1);
 
-  titoloInput.value = state.titolo;
-  nomeInput.value = state.nome;
+  var activePage = getActivePage();
+  titoloInput.value = activePage.titolo || "";
+  nomeInput.value = activePage.nome || "";
   renderPageTabs();
-  renderPalette();
   renderSheetSvg();
 }
+
+/* ---------------------------------------------------------------------
+   22b. Annulla / Ripristina (undo / redo)
+   Si basa su istantanee dell'intero stato (pagine, elementi, titolo e
+   nome di ciascuna pagina): e' meno elegante di una cronologia per
+   singola azione, ma e' molto piu' affidabile perche' copre allo stesso
+   modo qualunque operazione (disegno, trascinamento, cancellazione,
+   aggiunta/rimozione di pagine o pentagrammi, modifica dei campi...).
+   --------------------------------------------------------------------- */
+var history = [];
+var historyIndex = -1;
+var HISTORY_LIMIT = 60;
+var restoringHistory = false;
+
+function pushHistory() {
+  if (restoringHistory) return;
+  var snap = JSON.stringify(serializeState());
+  if (historyIndex >= 0 && history[historyIndex] === snap) return;
+  history = history.slice(0, historyIndex + 1);
+  history.push(snap);
+  if (history.length > HISTORY_LIMIT) history.shift();
+  historyIndex = history.length - 1;
+  updateUndoRedoButtons();
+}
+function restoreFromHistory(idx) {
+  if (idx < 0 || idx >= history.length) return;
+  restoringHistory = true;
+  historyIndex = idx;
+  applyLoadedData(JSON.parse(history[idx]));
+  restoringHistory = false;
+  saveLocalNow();
+  updateUndoRedoButtons();
+}
+function undo() { if (historyIndex > 0) restoreFromHistory(historyIndex - 1); }
+function redo() { if (historyIndex < history.length - 1) restoreFromHistory(historyIndex + 1); }
+function updateUndoRedoButtons() {
+  var u = document.getElementById("btnUndo"), r = document.getElementById("btnRedo");
+  if (u) u.classList.toggle("disabledBtn", historyIndex <= 0);
+  if (r) r.classList.toggle("disabledBtn", historyIndex >= history.length - 1);
+}
+document.getElementById("btnUndo").addEventListener("click", undo);
+document.getElementById("btnRedo").addEventListener("click", redo);
+document.addEventListener("keydown", function (e) {
+  var tag = (document.activeElement && document.activeElement.tagName) || "";
+  if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z" && !e.shiftKey) { e.preventDefault(); undo(); }
+  if ((e.ctrlKey || e.metaKey) && (e.key.toLowerCase() === "y" || (e.key.toLowerCase() === "z" && e.shiftKey))) { e.preventDefault(); redo(); }
+});
+
+/* ---------------------------------------------------------------------
+   22c. Cancella contenuto: pulisce il foglio di lavoro corrente
+   --------------------------------------------------------------------- */
+document.getElementById("btnClearSheet").addEventListener("click", function () {
+  var page = getActivePage();
+  if (page.items.length === 0) return;
+  var ok = window.confirm("Cancellare tutto il contenuto di questo foglio di lavoro?");
+  if (!ok) return;
+  page.items = [];
+  state.selectedId = null;
+  state.selectedSystemIndex = null;
+  renderSheetSvg();
+  saveLocalDebounced();
+});
 
 document.getElementById("btnSalva").addEventListener("click", function () {
   saveLocalNow();
 });
 
 document.getElementById("btnSalvaCon").addEventListener("click", function () {
-  var suggestion = (state.titolo ? state.titolo.replace(/[^a-zA-Z0-9_\- ]/g, "").trim() : "") || "lavoro-pentagramma";
+  var t = getActivePage().titolo;
+  var suggestion = (t ? t.replace(/[^a-zA-Z0-9_\- ]/g, "").trim() : "") || "lavoro-pentagramma";
   var name = window.prompt("Assegna un nome al file (senza estensione):", suggestion);
   if (!name) return;
   var blob = new Blob([JSON.stringify(serializeState(), null, 2)], { type: "application/json" });
@@ -1989,50 +2157,74 @@ document.getElementById("fileOpenInput").addEventListener("change", function (e)
 
 /* ---------------------------------------------------------------------
    23. Esportazione PDF (stampa multipagina, A4 orizzontale)
+
+   Titolo e Cognome/Nome vengono disegnati come testo DENTRO lo stesso
+   SVG del pentagramma (non in un blocco HTML separato sopra di esso):
+   cosi' l'intestazione e il rigo musicale sono un unico oggetto grafico
+   che la stampa non puo' spezzare su due pagine diverse.
    --------------------------------------------------------------------- */
+function buildPrintPageSvg(page, systems, titolo, nome) {
+  var TOP_MARGIN_UNITS = 20 * PX_PER_MM; /* 2 cm dalla parte alta del foglio */
+  var cursorY = TOP_MARGIN_UNITS;
+  var parts = [];
+  if (titolo) {
+    var tSize = 16 * PT_TO_UNIT;
+    cursorY += tSize;
+    parts.push('<text x="' + (PAGE_W / 2).toFixed(1) + '" y="' + cursorY.toFixed(1) +
+      '" font-family="Georgia, serif" font-size="' + tSize.toFixed(1) + '" font-weight="bold" text-anchor="middle" fill="#000">' + esc(titolo) + '</text>');
+    cursorY += 8;
+  }
+  if (nome) {
+    var nSize = 11 * PT_TO_UNIT;
+    cursorY += nSize;
+    parts.push('<text x="' + (PAGE_W - LAYOUT.marginX).toFixed(1) + '" y="' + cursorY.toFixed(1) +
+      '" font-family="Georgia, serif" font-size="' + nSize.toFixed(1) + '" text-anchor="end" fill="#000">' + esc(nome) + '</text>');
+  }
+  /* distacco netto fra il blocco titolo/nome e il primo rigo, cosi' non
+     restano appiccicati l'uno all'altro */
+  cursorY += 10 * PX_PER_MM;
+  var shiftY = cursorY - LAYOUT.marginTop;
+  parts.push('<g transform="translate(0,' + shiftY.toFixed(1) + ')">' + buildSheetSvgMarkup(page, systems) + '</g>');
+  return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + PAGE_W + ' ' + PAGE_H + '">' + parts.join("") + '</svg>';
+}
+
 document.getElementById("btnEsportaPdf").addEventListener("click", function () {
   state.selectedId = null;
   renderSheetSvg();
 
   var printArea = document.getElementById("printArea");
-  var titoloLine = state.titolo ? '<div class="printTitleLine">' + esc(state.titolo) + '</div>' : "";
-  var nomeLine = state.nome ? '<div class="printNameLine">' + esc(state.nome) + '</div>' : "";
-  var headerHtml = (titoloLine || nomeLine) ? ('<div class="printPageHeader">' + titoloLine + nomeLine + '</div>') : "";
-
   var html = "";
   for (var i = 0; i < state.pages.length; i++) {
     var page = state.pages[i];
     var systems = systemLayout(page.nSystems);
-    var svgMarkup = buildSheetSvgMarkup(page, systems);
-    html += '<div class="printPage"><div class="printPageInner">' + headerHtml +
-      '<div class="printPageSvgWrap"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + PAGE_W + ' ' + PAGE_H + '">' + svgMarkup + '</svg></div>' +
-      '</div></div>';
+    html += '<div class="printPage">' + buildPrintPageSvg(page, systems, page.titolo, page.nome) + '</div>';
   }
   printArea.innerHTML = html;
 
   /* piccola attesa per garantire che il browser abbia calcolato il nuovo
-     impaginato (evita che la stampa parta su un layout non ancora aggiornato) */
+     impaginato prima di aprire la finestra di stampa */
   void printArea.offsetHeight;
   setTimeout(function () {
     window.print();
     printArea.innerHTML = "";
   }, 50);
 });
-
 /* ---------------------------------------------------------------------
    24. Avvio
    --------------------------------------------------------------------- */
 function init() {
   /* Il foglio di lavoro deve sempre aprirsi vuoto: non si ripristina
-     automaticamente l'ultimo lavoro salvato. */
-  var p1 = addPage(1);
-  addPage(2);
+     automaticamente l'ultimo lavoro salvato. Una sola pagina iniziale,
+     con tutti gli elementi trascinabili e nessuna battuta pre-tracciata. */
+  var p1 = addPage();
   state.activePageId = p1.id;
   renderPageTabs();
   renderPalette();
   renderSheetSvg();
   state.zoom = 100;
   applyZoom();
+  fitAllToolsRows();
+  pushHistory();
 }
 init();
 
