@@ -391,6 +391,7 @@ var GLYPH = {
   barlineHeavy: "\uE034",
   brace: "\uE000",
   legerLine: "\uE022",
+  noteheadBlack: "\uE0A4",
   note16thUp: "\uE1D9",
   note16thDown: "\uE1DA",
   rest16th: "\uE4E7",
@@ -795,9 +796,140 @@ function buildSheetSvgMarkup(page, systems) {
   }
   out.push("</g>");
 
+  /* unificazione automatica degli uncini: le figure da 1/8 e da 1/16
+     vicine fra loro (stesso rigo, stessa direzione del gambo) vengono
+     travate insieme invece di essere disegnate con l'uncino singolo. */
+  var beamGroups = computeBeamGroups(page.items, sp);
+  var beamedIds = {};
+  for (var g0 = 0; g0 < beamGroups.length; g0++) {
+    for (var n0 = 0; n0 < beamGroups[g0].notes.length; n0++) beamedIds[beamGroups[g0].notes[n0].item.id] = true;
+  }
+
   for (var k = 0; k < page.items.length; k++) {
+    if (beamedIds[page.items[k].id]) continue;
     out.push(renderPlacedItem(page.items[k], systems, sp));
   }
+  for (var g1 = 0; g1 < beamGroups.length; g1++) {
+    out.push(renderBeamGroup(beamGroups[g1], systems, sp));
+  }
+  return out.join("\n");
+}
+
+/* ---------------------------------------------------------------------
+   Unificazione automatica delle figure uncinate (travature)
+   --------------------------------------------------------------------- */
+var BEAM_PROXIMITY_SP = 3.6;
+var BEAM_STEM_LEN_SP = 3.5;
+var BEAM_THICK_SP = 0.5;
+var BEAM_GAP_SP = 0.62;
+
+function noteBeamLevel(sub) {
+  if (sub === "eighth-up" || sub === "eighth-down") return 1;
+  if (sub === "sixteenth-up" || sub === "sixteenth-down") return 2;
+  return 0;
+}
+function noteBeamDir(sub) {
+  if (!sub) return null;
+  if (sub.indexOf("-up") !== -1) return "up";
+  if (sub.indexOf("-down") !== -1) return "down";
+  return null;
+}
+
+function computeBeamGroups(items, sp) {
+  var bySystem = {};
+  for (var i = 0; i < items.length; i++) {
+    var it = items[i];
+    if (it.kind !== "note") continue;
+    var lvl = noteBeamLevel(it.sub);
+    if (lvl === 0) continue;
+    var dir = noteBeamDir(it.sub);
+    var key = String(it.systemIndex);
+    if (bySystem[key] === undefined) bySystem[key] = [];
+    bySystem[key].push({ item: it, lvl: lvl, dir: dir });
+  }
+  var groups = [];
+  var sysKeys = Object.keys(bySystem);
+  for (var sk = 0; sk < sysKeys.length; sk++) {
+    var arr = bySystem[sysKeys[sk]];
+    arr.sort(function (a, b) { return a.item.x - b.item.x; });
+    var idx = 0;
+    while (idx < arr.length) {
+      var run = [arr[idx]];
+      var j = idx + 1;
+      while (j < arr.length && arr[j].dir === arr[idx].dir &&
+        (arr[j].item.x - arr[j - 1].item.x) <= BEAM_PROXIMITY_SP * sp) {
+        run.push(arr[j]);
+        j++;
+      }
+      if (run.length >= 2) groups.push({ systemIndex: parseInt(sysKeys[sk], 10), dir: arr[idx].dir, notes: run });
+      idx = j;
+    }
+  }
+  return groups;
+}
+
+function renderBeamGroup(group, systems, sp) {
+  var sys = systems[group.systemIndex];
+  var fs = FS(sp);
+  var dir = group.dir;
+  var notes = group.notes;
+  var out = [];
+  var ys = [], xs = [];
+  for (var k0 = 0; k0 < notes.length; k0++) {
+    ys.push(lineY(sys, notes[k0].item.snapI));
+    xs.push(notes[k0].item.x);
+  }
+  var beamY = (dir === "up") ? (Math.min.apply(null, ys) - BEAM_STEM_LEN_SP * sp) : (Math.max.apply(null, ys) + BEAM_STEM_LEN_SP * sp);
+  var nhHalfW = 0.59 * sp;
+  var stemW = Math.max(1, 0.12 * sp);
+  var stemXs = [];
+
+  for (var k = 0; k < notes.length; k++) {
+    var item = notes[k].item;
+    var selected = (item.id === state.selectedId);
+    var haloClass = selected ? " selHalo" : "";
+    var ny = ys[k];
+    var nx = xs[k] - nhHalfW;
+    out.push(gtext(nx, ny, GLYPH.noteheadBlack, fs, "start"));
+
+    var stemX = (dir === "up") ? (nx + 1.18 * sp) : nx;
+    stemXs.push(stemX);
+    var stemStartY = (dir === "up") ? (ny - 0.168 * sp) : (ny + 0.168 * sp);
+    out.push('<line x1="' + stemX.toFixed(2) + '" y1="' + stemStartY.toFixed(2) + '" x2="' + stemX.toFixed(2) + '" y2="' + beamY.toFixed(2) + '" stroke="black" stroke-width="' + stemW.toFixed(2) + '"/>');
+
+    var bkey = bboxKeyFor(item);
+    var b = BBOX[bkey] || { l: -0.2, r: 1.5, t: 3.7, b: 0.75 };
+    var off = centerOffset(bkey) * sp;
+    var by1 = Math.min(ny - b.t * sp, beamY - BEAM_THICK_SP * sp);
+    var by2 = Math.max(ny + b.b * sp, beamY + BEAM_THICK_SP * sp);
+    out.push(haloRect(xs[k] + (b.l - centerOffset(bkey)) * sp, by1, (b.r - b.l) * sp, by2 - by1, item.id, haloClass));
+    if (selected) out.push(deleteBtn(item, systems, sp));
+  }
+
+  var beamHalfThick = BEAM_THICK_SP * sp / 2;
+  var firstX = stemXs[0], lastX = stemXs[stemXs.length - 1];
+  out.push('<rect x="' + Math.min(firstX, lastX).toFixed(2) + '" y="' + (beamY - beamHalfThick).toFixed(2) +
+    '" width="' + Math.abs(lastX - firstX).toFixed(2) + '" height="' + (BEAM_THICK_SP * sp).toFixed(2) + '" fill="black"/>');
+
+  /* travature secondarie (per le figure da 1/16): uniscono solo le
+     sotto-sequenze consecutive che ne hanno bisogno */
+  var gapDir = (dir === "up") ? 1 : -1;
+  var k2 = 0;
+  while (k2 < notes.length) {
+    if (notes[k2].lvl >= 2) {
+      var k3 = k2;
+      while (k3 + 1 < notes.length && notes[k3 + 1].lvl >= 2) k3++;
+      if (k3 > k2) {
+        var by = beamY + gapDir * BEAM_GAP_SP * sp;
+        out.push('<rect x="' + Math.min(stemXs[k2], stemXs[k3]).toFixed(2) + '" y="' + (by - beamHalfThick).toFixed(2) +
+          '" width="' + Math.abs(stemXs[k3] - stemXs[k2]).toFixed(2) + '" height="' + (BEAM_THICK_SP * sp).toFixed(2) + '" fill="black"/>');
+      }
+      k2 = k3 + 1;
+    } else {
+      k2++;
+    }
+  }
+
   return out.join("\n");
 }
 
