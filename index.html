@@ -156,6 +156,10 @@ svg.ic { width: 21px; height: 21px; display: block; fill: none; stroke-width: 1.
 }
 #sheetSvg { width: 100%; height: 100%; display: block; touch-action: none; user-select: none; }
 .selHalo { fill: none; stroke: #2f6fb3; stroke-width: 1.6; stroke-dasharray: 3 3; }
+/* elemento della tavolozza attualmente attivo (inserimento ripetuto) */
+#paletteSvg .paletteItem .palHit { rx: 4px; }
+#paletteSvg .paletteItem:hover .palHit { fill: rgba(47,111,179,0.07); }
+#paletteSvg .paletteItem.stampActive .palHit { fill: rgba(47,111,179,0.18); stroke: #2f6fb3; stroke-width: 1.4; }
 
 .delBtn { cursor: pointer; }
 .delBtn circle { fill: #c0392b; }
@@ -1233,11 +1237,55 @@ function attachPaletteHandlers(svg) {
     groups[i].addEventListener("pointerdown", onPaletteDown);
   }
 }
+/* ---------------------------------------------------------------------
+   11b. Elemento attivo ("timbro"): l'elemento scelto nella tavolozza resta
+   attivo, cosi' ogni clic sul foglio ne inserisce una nuova copia senza
+   doverlo riprendere ogni volta. Si cambia scegliendo un altro elemento
+   della tavolozza, oppure si esce con la freccina (Seleziona/sposta) o Esc.
+   --------------------------------------------------------------------- */
+var stampDef = null, stampIdx = null;
+
+function updatePaletteStampHighlight() {
+  var groups = document.querySelectorAll("#paletteSvg .paletteItem");
+  for (var i = 0; i < groups.length; i++) {
+    var gi = parseInt(groups[i].getAttribute("data-idx"), 10);
+    groups[i].classList.toggle("stampActive", stampIdx !== null && gi === stampIdx);
+  }
+}
+function setStamp(idx) {
+  stampIdx = idx;
+  stampDef = paletteItemsCache[idx];
+  activeTool = "stamp";
+  closeAllPopovers();
+  for (var k in toolButtons) toolButtons[k].classList.remove("active");
+  state.selectedId = null;
+  state.selectedSystemIndex = null;
+  updatePaletteStampHighlight();
+  document.getElementById("sheetSvg").style.cursor = "crosshair";
+}
+function clearStamp() {
+  if (stampDef === null && stampIdx === null) return;
+  stampDef = null;
+  stampIdx = null;
+  updatePaletteStampHighlight();
+  if (previewItem && !drag) { previewItem = null; renderSheetSvg(); }
+}
+function startStampAt(x, y, pointerId) {
+  previewItem = computePlacement(stampDef, x, y, systemsCache);
+  previewItem.id = "__preview__";
+  previewItem.preview = true;
+  drag = { type: "clone", def: stampDef, pointerId: pointerId };
+  renderSheetSvg();
+}
+
 function onPaletteDown(e) {
   e.preventDefault();
+  if (e.button !== undefined && e.button !== 0) return;
   var idx = parseInt(e.currentTarget.getAttribute("data-idx"), 10);
   var def = paletteItemsCache[idx];
+  setStamp(idx);
   drag = { type: "clone", def: def, pointerId: e.pointerId };
+  renderSheetSvg();
   document.body.style.cursor = "grabbing";
 }
 
@@ -1272,6 +1320,17 @@ function findItemById(id) {
 }
 
 function onItemDown(e) {
+  if (activeTool === "stamp" && stampDef) {
+    /* con un elemento attivo, il clic (sinistro) inserisce una nuova copia
+       anche sopra un elemento gia' presente; il clic destro resta libero
+       per eliminare l'elemento con il menu contestuale */
+    e.stopPropagation(); e.preventDefault();
+    if (e.button !== undefined && e.button !== 0) return;
+    var svgS = document.getElementById("sheetSvg");
+    var pS = svgPointFrom(svgS, e.clientX, e.clientY);
+    startStampAt(pS.x, pS.y, e.pointerId);
+    return;
+  }
   if (activeTool === "eraser") {
     e.stopPropagation(); e.preventDefault();
     var idE = e.currentTarget.getAttribute("data-id");
@@ -1309,6 +1368,13 @@ function onSheetBackgroundDown(e) {
   if (e.target && e.target.closest && e.target.closest(".hitRect,.delBtn,.resizeHandle")) return;
   var svg = document.getElementById("sheetSvg");
   var p = svgPointFrom(svg, e.clientX, e.clientY);
+
+  if (activeTool === "stamp" && stampDef) {
+    e.preventDefault();
+    if (e.button !== undefined && e.button !== 0) return;
+    startStampAt(p.x, p.y, e.pointerId);
+    return;
+  }
 
   if (activeTool === "select-system") {
     e.preventDefault();
@@ -1390,7 +1456,23 @@ function removeItemById(id) {
    13. Movimento globale del puntatore (documento)
    --------------------------------------------------------------------- */
 document.addEventListener("pointermove", function (e) {
-  if (!drag) return;
+  if (!drag) {
+    /* elemento attivo: l'anteprima "fantasma" segue il puntatore sul foglio */
+    if (activeTool === "stamp" && stampDef) {
+      var svgH = document.getElementById("sheetSvg");
+      if (pointInSheet(svgH, e.clientX, e.clientY)) {
+        var pH = svgPointFrom(svgH, e.clientX, e.clientY);
+        previewItem = computePlacement(stampDef, pH.x, pH.y, systemsCache);
+        previewItem.id = "__preview__";
+        previewItem.preview = true;
+        renderSheetSvg();
+      } else if (previewItem) {
+        previewItem = null;
+        renderSheetSvg();
+      }
+    }
+    return;
+  }
   var svg = document.getElementById("sheetSvg");
 
   if (drag.type === "clone") {
@@ -1506,8 +1588,13 @@ document.addEventListener("pointerup", function (e) {
       delete it.preview;
       it.id = newId();
       currentItems().push(it);
-      state.selectedId = it.id;
+      /* con l'elemento attivo non si seleziona la copia appena inserita:
+         la "X" di eliminazione intralcerebbe gli inserimenti successivi */
+      if (!(activeTool === "stamp" && stampDef)) state.selectedId = it.id;
       saveLocalDebounced();
+      /* ogni inserimento e' un passo a se' per "Annulla": anche inserendo
+         molte figure di seguito si annullano una alla volta */
+      pushHistory();
     }
     previewItem = null;
     drag = null;
@@ -1974,6 +2061,7 @@ function closeAllPopovers() {
 }
 function setActiveTool(tool, opts) {
   opts = opts || {};
+  clearStamp();
   if (tool === activeTool && !opts.forceOpen) {
     activeTool = "select";
     closeAllPopovers();
@@ -1992,6 +2080,7 @@ toolButtons.text.addEventListener("click", function () { setActiveTool("text"); 
 toolButtons.shape.addEventListener("click", function () { setActiveTool("shape"); });
 toolButtons["select-system"].addEventListener("click", function () { setActiveTool("select-system"); });
 toolButtons.select.addEventListener("click", function () {
+  clearStamp();
   activeTool = "select";
   closeAllPopovers();
   for (var k in toolButtons) toolButtons[k].classList.toggle("active", k === "select");
@@ -2018,7 +2107,17 @@ document.getElementById("btnRemoveSystem").addEventListener("click", function ()
 });
 
 toolButtons.image.addEventListener("click", function () {
+  clearStamp();
+  if (activeTool === "stamp") activeTool = "select";
   document.getElementById("imageFileInput").click();
+});
+
+/* Esc: esce dalla modalita' "elemento attivo" (come la freccina) */
+document.addEventListener("keydown", function (e) {
+  if (e.key !== "Escape" || activeTool !== "stamp") return;
+  var tag = (document.activeElement && document.activeElement.tagName) || "";
+  if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+  toolButtons.select.click();
 });
 document.getElementById("imageFileInput").addEventListener("change", function (e) {
   var file = e.target.files && e.target.files[0];
